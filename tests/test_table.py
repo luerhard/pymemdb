@@ -1,6 +1,6 @@
 import pytest
 
-from pymemdb import Table, UniqueConstraintError, Database
+from pymemdb import Table, UniqueConstraintError, Database, ColumnDoesNotExist
 
 
 @pytest.fixture(scope="session")
@@ -52,6 +52,14 @@ def test_find_rows(big_table):
     assert result["squared"] == 64
 
 
+def test_find_col_not_exists(big_table):
+    with pytest.raises(KeyError):
+        result = list(big_table.find(quadratic=17, ignore_errors=False))
+
+    result = list(big_table.find(quadratic=17, ignore_errors=True))
+    assert result == []
+
+
 def test_find_in(big_table):
     result = list(big_table.find(normal=[7, 8]))
     assert {row["squared"] for row in result} == {49, 64}
@@ -68,6 +76,33 @@ def test_no_find_multiple_keys(big_table):
     assert len(result) == 0
 
 
+def test_find_with_default_val():
+    t = Table(primary_id="b")
+    t.insert(dict(b=1))
+    t.insert(dict(b=2))
+    t.insert(dict(a=1, b=3))
+    results = list(t.find(a=None))
+    assert results == [dict(b=1, a=None), dict(b=2, a=None)]
+
+
+def test_find_with_multiple_default_vals():
+    t = Table(primary_id="b")
+    t.create_column("firstname", default="John")
+    t.create_column("lastname", default="Smith")
+    t.insert(dict(b=1))
+    t.insert(dict(b=2))
+    t.insert(dict(b=3, lastname="Doe"))
+
+    result = t.find(lastname="Smith")
+    result2 = t.find(b=2)
+    result3 = t.find(firstname="John", lastname="Smith")
+
+
+    assert [r["b"] for r in result] == [1, 2]
+    assert list(result2) == [dict(b=2, firstname="John", lastname="Smith")]
+    assert [r["b"] for r in result3] == [1, 2]
+
+
 def test_delete_find_delete():
     t = Table(primary_id="a")
     t.insert({"a": 1, "b": 2})
@@ -78,14 +113,29 @@ def test_delete_find_delete():
     assert len(result) == 1
     assert len(t) == 3
 
-    t.delete(a=1)
+    n_delete = t.delete(a=1)
 
     result = list(t.find(a=1))
     print(result)
+    assert n_delete == 1
     assert len(result) == 0
     assert len(t) == 2
     assert list(t.all(ordered="ascending")) == [{"a": 2, "b": 5},
                                                 {"a": 3, "b": 6}]
+
+
+def test_invalid_delete():
+    t = Table(primary_id="a")
+    row = {"a": 1, "foo": "bar"}
+    t.insert(row)
+    t.delete(a=5, ignore_errors=True)
+    assert list(t.all()) == [row]
+
+    with pytest.raises(KeyError):
+        t.delete(a=5, ignore_errors=False)
+
+    assert t.delete(a=1, ignore_errors=False) == 1
+    assert len(t) == 0
 
 
 def test_update():
@@ -105,6 +155,14 @@ def test_update():
     assert all(row["b"] == 10 for row in result)
 
 
+def test_update_no_vals():
+    t = Table(primary_id="a")
+    row = {"a": 1, "b": 2}
+    t.insert({"a": 1, "b": 2})
+    t.update(where={"a": 2}, b=5)
+    assert list(t.all()) == [row]
+
+
 def test_insert_ignore(big_table):
     big_table.insert(dict(normal=101, squared=102))
 
@@ -118,3 +176,36 @@ def test_insert_ignore(big_table):
     assert len(big_table) == 102
     assert len(list(big_table.find(normal=102))) == 1
     assert len(list(big_table.find(squared=102))) == 2
+
+
+def test_get_all_ordered_descending():
+    t = Table(primary_id="a")
+    t.insert({"a": 1, "b": 2})
+    t.insert({"a": 2, "b": 5})
+    t.insert({"a": 3, "b": 6})
+
+    results = t.all(ordered="descending")
+
+    assert [r["b"] for r in results] == [6, 5, 2]
+
+
+def test_invalid_arg_ordered():
+    t = Table(primary_id="a")
+    t.insert({"a": 1})
+
+    with pytest.raises(ValueError):
+        list(t.all(ordered="foo"))
+
+
+def test_equal_tables():
+    t1 = Table(name="foo")
+    t2 = Table(name="bar")
+    t3 = Table(name="foo")
+
+    assert t1 == t3
+    assert t1 != t2
+
+def test_invalid_colname():
+    t1 = Table()
+    with pytest.raises(ColumnDoesNotExist):
+        t1["g"]

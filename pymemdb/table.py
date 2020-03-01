@@ -1,7 +1,6 @@
 from collections import defaultdict
 from collections.abc import Iterable
-from pymemdb.column import Column
-from pymemdb.errors import RowDoesNotExist
+from pymemdb import Column, ColumnDoesNotExist
 
 
 class Table:
@@ -52,8 +51,8 @@ class Table:
             return self.insert(row)
         return None
 
-    def find(self, **kwargs):
-        results = self._find_rows(**kwargs)
+    def find(self, ignore_errors=False, **kwargs):
+        results = self._find_rows(**kwargs, ignore_errors=ignore_errors)
         if not results:
             return None
         for p in results:
@@ -61,20 +60,14 @@ class Table:
 
     def delete(self, ignore_errors=False, **kwargs):
         pks = {row[self.pk_id] for row in self.find(**kwargs)}
-        try:
-            for pk in pks:
-                self.keys.remove(pk)
-        except KeyError as e:
-            if ignore_errors:
-                pass
-            else:
-                raise e
+        if len(pks) == 0 and not ignore_errors:
+            raise KeyError(f"No matching rows found for {kwargs}")
+        for pk in pks:
+            self.keys.remove(pk)
         for col in self._columns.values():
             for pk in pks:
-                try:
-                    col.drop(pk)
-                except KeyError:
-                    pass
+                col.drop(pk)
+        return len(pks)
 
     def update(self, where, **kwargs):
         pks = self._find_rows(**where)
@@ -92,15 +85,11 @@ class Table:
                 to_remove[prev_val].add(pk)
 
     def _get_row(self, pk):
-        if pk not in self.keys:
-            raise RowDoesNotExist(f"Row with {self.pk_id}={pk} does not exist")
         row = {col: self._columns[col].find_value(pk) for col in self.columns}
         row = {self.pk_id: pk, **row}
         return row
 
     def _find(self, col, val):
-        if col not in self._columns:
-            self.create_column(col)
         if isinstance(val, Iterable) and not isinstance(val, str):
             results = set()
             for v in val:
@@ -108,20 +97,26 @@ class Table:
             return results
         return self._columns[col].find(val)
 
-    def _find_rows(self, **kwargs):
+    def _find_rows(self, ignore_errors=True, **kwargs):
         results = None
         for col, val in kwargs.items():
+            if col not in self._columns:
+                if ignore_errors:
+                    continue
+                else:
+                    raise KeyError(f"Column {col} not in Table!")
             if results is None:
                 results = self._find(col, val)
                 if val == self._columns[col].default:
-                    results.update(self.keys.symmetric_difference(
-                        set(self._columns[col].cells)))
+                    column_cells = set(self._columns[col].cells)
+                    results.update(self.keys.symmetric_difference(column_cells))
             else:
                 pk = self._find(col, val)
                 results.intersection_update(pk)
+                print(f"ON COL {col}")
                 if val == self._columns[col].default:
-                    results.update(self.keys.symmetric_difference(
-                        set(self._columns[col].cells)))
+                    column_cells = set(self._columns[col].cells)
+                    results.update(self.keys.symmetric_difference(column_cells))
             if not results:
                 return None
         return results
@@ -131,16 +126,13 @@ class Table:
 
     def __getitem__(self, col):
         if col not in self._columns:
-            raise KeyError
+            raise ColumnDoesNotExist("Column {col} does not exist!")
         return self._columns[col]
 
     def __delitem__(self, col):
-       if col not in self._columns:
-            raise KeyError
-       del self._columns[col]
-
-    def __hash__(self):
-        return hash(self.name)
+        if col not in self._columns:
+            raise ColumnDoesNotExist(f"Column {col} does not exist!")
+        del self._columns[col]
 
     def __len__(self):
         return len(self.keys)
