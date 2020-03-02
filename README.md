@@ -1,4 +1,5 @@
 # pymemdb
+[![CircleCI](https://circleci.com/gh/luerhard/pymemdb.svg?style=svg)](https://circleci.com/gh/luerhard/pymemdb) [![codecov](https://codecov.io/gh/luerhard/pymemdb/branch/master/graph/badge.svg)](https://codecov.io/gh/luerhard/pymemdb)
 
 will soon be available with 
 ```
