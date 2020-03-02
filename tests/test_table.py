@@ -139,7 +139,7 @@ def test_invalid_delete():
 
 
 def test_update():
-    t = Table(primary_id="a")
+    t = Table(primary_id="id")
     t.insert({"a": 1, "b": 2})
     t.insert({"a": 2, "b": 5})
     t.insert({"a": 3, "b": 6})
@@ -205,7 +205,15 @@ def test_equal_tables():
     assert t1 == t3
     assert t1 != t2
 
+
 def test_invalid_colname():
     t1 = Table()
     with pytest.raises(ColumnDoesNotExist):
         t1["g"]
+
+
+def test_insert_pk_twice():
+    t = Table(primary_id="pk")
+    t.insert(dict(pk=1, b=2))
+    with pytest.raises(UniqueConstraintError):
+        t.insert(dict(pk=1, b=3))

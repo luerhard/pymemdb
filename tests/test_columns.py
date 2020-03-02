@@ -4,20 +4,20 @@ from pymemdb import Table, ColumnDoesNotExist
 
 
 def test_add_columns():
-    t = Table()
+    t = Table(primary_id="id")
     t.create_column("a")
     t.create_column("b")
 
-    assert t.columns == ["a", "b"]
+    assert t.columns == ["id", "a", "b"]
 
 
 def test_delete_columns():
-    t = Table()
+    t = Table(primary_id="primary_key")
     t.create_column("a")
     t.create_column("b")
     del t["b"]
 
-    assert t.columns == ["a"]
+    assert t.columns == ["primary_key", "a"]
 
 
 def test_delete_invalid_columns():
