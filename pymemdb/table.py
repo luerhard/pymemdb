@@ -146,7 +146,6 @@ class Table:
              **kwargs) -> Generator[dict, None, None]:
         """finds rows in the table.
 
-
         Keyword Arguments:
             **kwargs -- keyword is the column name and value represents the
                         value to search.
@@ -156,7 +155,7 @@ class Table:
             ignore_errors {bool} -- if True, it raises an error if a column
                                     does not exist in the table
                                     (default: {False})
-        
+
         Returns:
             Generator[dict] -- [Generator over all rows that match the search]
         """
