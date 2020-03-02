@@ -15,9 +15,16 @@ jobs:
             name: Install package
             command: pip install .
       - run:
-          command: python -m pytest
-          name: Test
+            name: run-tests
+            command: |
+            mkdir test-results
+            python -m pytest --junitxml=test-results/junit.xml
 
+      - store_test_results:
+          path: test-results
+
+      - store_artifacts:
+          path: test-results
 workflows:
   main:
     jobs:
