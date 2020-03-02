@@ -1,19 +1,34 @@
 from collections import defaultdict
 from collections.abc import Iterable
+from typing import Optional, Generator, Union, Hashable, List, Dict, Set
 from pymemdb import Column, ColumnDoesNotExist
+
+import sys
+
+version = sys.version_info
+if version.major < 3:  # pragma: no cover
+    raise Exception("Python version must be 3.6 or higher")
+if version.major >= 3 and version.minor < 8:
+    ORDER_TYPE = Union[str, bool]
+else:  # pragma: no cover
+    from typing import Literal
+    ORDER_TYPE = Literal["ascending", "descending", False]
+
+ROW_GEN = Generator[dict, None, None]
 
 
 class Table:
 
-    def __init__(self, name=None, primary_id="id"):
+    def __init__(self, name: Optional[str] = None,
+                 primary_id: str = "id") -> None:
         self.name = name
         self.idx_name = primary_id
-        self._columns = defaultdict(Column)
+        self._columns: defaultdict = defaultdict(Column)
         self.idx = 0
-        self.keys = set()
+        self.keys: set = set()
         self.create_column(name=self.idx_name, unique=True)
 
-    def all(self, ordered=False):
+    def all(self, ordered: ORDER_TYPE = False) -> ROW_GEN:
         if ordered is False:
             for i in self.keys:
                 yield self._get_row(i)
@@ -27,17 +42,18 @@ class Table:
             raise ValueError("Value for kwarg 'ordered' not in [False, "
                              "ascending, descending] !")
 
-    def create_column(self, name, default=None, unique=False):
+    def create_column(self, name: str, default: Hashable = None,
+                      unique: bool = False) -> None:
         self._columns[name] = Column(default=default, unique=unique)
 
     @property
-    def columns(self):
+    def columns(self) -> List[str]:
         return list(self._columns)
 
-    def drop(self):
+    def drop(self) -> None:
         del self
 
-    def insert(self, row):
+    def insert(self, row: Dict) -> int:
         if self.idx_name in row:
             idx = row[self.idx_name]
         else:
@@ -51,7 +67,7 @@ class Table:
             self._columns[self.idx_name].insert(idx, idx)
         return idx
 
-    def insert_ignore(self, row, keys):
+    def insert_ignore(self, row: Dict, keys: List[str]) -> Optional[int]:
         results = self.find(**{key: row[key] for key in keys})
         try:
             next(results)
@@ -59,71 +75,70 @@ class Table:
             return self.insert(row)
         return None
 
-    def find(self, ignore_errors=False, **kwargs):
-        results = self._find_rows(**kwargs, ignore_errors=ignore_errors)
+    def find(self, ignore_errors: bool = False,
+             **kwargs) -> Generator[dict, None, None]:
+        results = self._find_rows(ignore_errors=ignore_errors, **kwargs)
         if not results:
             return None
-        for p in results:
-            yield {self.idx_name: p, **self._get_row(p)}
+        for idx in results:
+            yield {self.idx_name: idx, **self._get_row(idx)}
 
-    def delete(self, ignore_errors=False, **kwargs):
+    def delete(self, ignore_errors: bool = False, **kwargs) -> int:
         pks = {row[self.idx_name] for row in self.find(**kwargs)}
         if len(pks) == 0 and not ignore_errors:
             raise KeyError(f"No matching rows found for {kwargs}")
         for pk in pks:
             self.keys.remove(pk)
-        for key, col in self._columns.items():
+        for col in self._columns.values():
             for pk in pks:
                 col.drop(pk)
         return len(pks)
 
-    def update(self, where, **kwargs):
+    def update(self, where: dict, **kwargs) -> int:
         pks = self._find_rows(**where)
         if not pks:
-            return None
+            return 0
 
         for col, val in kwargs.items():
             cell_dict = self._columns[col].cells
             val_dict = self._columns[col].values
             for pk in pks:
-                #prev_val = self._columns[col].find_value(pk)
                 cell_dict[pk] = val
                 val_dict[val].add(pk)
+        return len(pks)
 
-    def _get_row(self, pk):
-        row = {col: self._columns[col].find_value(pk) for col in self.columns}
-        row = {self.idx_name: pk, **row}
+    def _get_row(self, idx: int) -> dict:
+        row = {col: self._columns[col].find_value(idx) for col in self.columns}
+        row = {self.idx_name: idx, **row}
         return row
 
-    def _find(self, col, val):
+    def _find(self, col: str, val: Hashable) -> set:
         if isinstance(val, Iterable) and not isinstance(val, str):
-            results = set()
+            results: set = set()
             for v in val:
                 results.update(self._columns[col].find(v))
             return results
         return self._columns[col].find(val)
 
-    def _find_rows(self, ignore_errors=True, **kwargs):
-        results = None
+    def _find_rows(self, ignore_errors: bool = True, **kwargs) -> set:
+        results: set = set()
         for col, val in kwargs.items():
             if col not in self._columns:
                 if ignore_errors:
                     continue
                 else:
                     raise KeyError(f"Column {col} not in Table!")
-            if results is None:
+            if len(results) == 0:
                 results = self._find(col, val)
-                if val == self._columns[col].default:
-                    column_cells = set(self._columns[col].cells)
-                    results.update(self.keys.symmetric_difference(column_cells))
             else:
                 pk = self._find(col, val)
                 results.intersection_update(pk)
-                if val == self._columns[col].default:
-                    column_cells = set(self._columns[col].cells)
-                    results.update(self.keys.symmetric_difference(column_cells))
+            if val == self._columns[col].default:
+                column_cells = set(self._columns[col].cells)
+                mis_def_keys = self.keys.symmetric_difference(column_cells)
+                results.update(mis_def_keys)
             if not results:
-                return None
+                return set()
         return results
 
     def __eq__(self, other):
