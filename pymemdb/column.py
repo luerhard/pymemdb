@@ -12,22 +12,26 @@ class Column:
 
     def insert(self, pk, val):
         if self.unique and val in self.values:
-            raise UniqueConstraintError(f"{val} already present in column (row {self.values[val]})")
+            raise UniqueConstraintError(f"{val} already present in column "
+                                        f"(row {self.values[val]})")
         self.cells[pk] = val
         self.values[val].add(pk)
 
     def drop(self, pk):
-        val = self.cells[pk]
-        del self.cells[pk]
-        self.values[val].remove(pk)
-        if not self.values[val]:
-            del self.values[val]
+        if pk in self.cells:
+            val = self.cells[pk]
+            del self.cells[pk]
+            self.values[val].remove(pk)
+            if not self.values[val]:
+                del self.values[val]
 
     def find(self, val):
-        return self.values[val]
+        return self.values.get(val, set())
 
     def find_value(self, pk):
         return self.cells.get(pk, self.default)
 
     def __len__(self):
         return len(self.cells)
+
+
