@@ -15,10 +15,11 @@ jobs:
             name: Install package
             command: pip install .
       - run:
+            name: create testfolder
+            command: mkdir test-results
+      - run:
             name: run-tests
-            command: |
-            mkdir test-results
-            python -m pytest --junitxml=test-results/junit.xml
+            command: python -m pytest --junitxml=test-results/junit.xml
 
       - store_test_results:
           path: test-results
