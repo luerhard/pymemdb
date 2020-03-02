@@ -34,7 +34,7 @@ class Database:
 
         db = dataset.connect(f"sqlite:///{file}")
         for tablename in self.tables:
-            pk_id = self._tables[tablename].pk_id
+            pk_id = self._tables[tablename].idx_name
             tableobject = db.create_table(tablename, primary_id=pk_id)
             tableobject.insert_many(list(self._tables[tablename].all()),
                                     chunk_size=chunk_size)

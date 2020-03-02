@@ -9,7 +9,7 @@ def test_database_create():
     db.create_table("mytable", primary_id="test")
 
     assert db.tables == ["mytable"]
-    assert db["mytable"].pk_id == "test"
+    assert db["mytable"].idx_name == "test"
 
 
 def test_drop_table():

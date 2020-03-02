@@ -38,12 +38,18 @@ class Table:
         del self
 
     def insert(self, row):
-        while self.idx in self.keys:
-            self.idx += 1
-        self.keys.add(self.idx)
+        if self.idx_name in row:
+            idx = row[self.idx_name]
+        else:
+            while self.idx in self.keys:
+                self.idx += 1
+            idx = self.idx
+        self.keys.add(idx)
         for key, val in row.items():
-            self._columns[key].insert(self.idx, val)
-        return self.idx
+            self._columns[key].insert(idx, val)
+        if self.idx_name not in row:
+            self._columns[self.idx_name].insert(idx, idx)
+        return idx
 
     def insert_ignore(self, row, keys):
         results = self.find(**{key: row[key] for key in keys})
@@ -66,7 +72,7 @@ class Table:
             raise KeyError(f"No matching rows found for {kwargs}")
         for pk in pks:
             self.keys.remove(pk)
-        for col in self._columns.values():
+        for key, col in self._columns.items():
             for pk in pks:
                 col.drop(pk)
         return len(pks)
@@ -79,12 +85,10 @@ class Table:
         for col, val in kwargs.items():
             cell_dict = self._columns[col].cells
             val_dict = self._columns[col].values
-            to_remove = defaultdict(set)
             for pk in pks:
-                prev_val = self._columns[col].find_value(pk)
+                #prev_val = self._columns[col].find_value(pk)
                 cell_dict[pk] = val
                 val_dict[val].add(pk)
-                to_remove[prev_val].add(pk)
 
     def _get_row(self, pk):
         row = {col: self._columns[col].find_value(pk) for col in self.columns}
@@ -115,7 +119,6 @@ class Table:
             else:
                 pk = self._find(col, val)
                 results.intersection_update(pk)
-                print(f"ON COL {col}")
                 if val == self._columns[col].default:
                     column_cells = set(self._columns[col].cells)
                     results.update(self.keys.symmetric_difference(column_cells))
