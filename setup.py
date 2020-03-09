@@ -13,7 +13,7 @@ def read(fname):
 
 setup(
     name="pymemdb",
-    version="1.0",
+    version="1.0.1",
     author_email="luerhard@googlemail.com",
     description=("A very fast in-memory database with export to sqlite written purely in python"),
     long_description=read("README.md"),
@@ -24,10 +24,9 @@ setup(
     install_requires=[
         "dataset",
     ],
-    package_dir={'': 'pymemdb'},
-    packages=find_packages("pymemdb", exclude=["tests/",
-                                               ".circleci/",
-                                               ]),
+    packages=find_packages(exclude=["tests/",
+                                    ".circleci/",
+                                    ]),
     classifiers=[
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3.6",
