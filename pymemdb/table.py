@@ -8,7 +8,7 @@ import sys
 version = sys.version_info
 if version.major < 3:  # pragma: no cover
     raise Exception("Python version must be 3.6 or higher")
-if version.major >= 3 and version.minor < 8:
+if version.major >= 3 and version.minor < 8:  # pragma: no cover
     ORDER_TYPE = Union[str, bool]
 else:  # pragma: no cover
     from typing import Literal  # type: ignore
@@ -214,7 +214,7 @@ class Table:
                 results = self._find(col, val)
             else:
                 pk = self._find(col, val)
-                results.intersection_update(pk)
+                results = results.intersection(pk)
             if val == self._columns[col].default:
                 column_cells = set(self._columns[col].cells)
                 mis_def_keys = self.keys.symmetric_difference(column_cells)
