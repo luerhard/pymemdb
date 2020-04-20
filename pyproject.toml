@@ -23,7 +23,8 @@ classifiers = [
     ]
 
 [tool.flit.metadata.requires-extra]
-test = [
+dev = [
     "pytest",
     "pytest-cov",
+    "bumpversion",
 ]
