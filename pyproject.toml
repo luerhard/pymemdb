@@ -1,0 +1,11 @@
+[build-system]
+requires = ["flit_core >=2,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.flit.metadata]
+module = "pymemdb"
+author = "Lukas Erhard"
+author-email = "luerhard@googlemail.com"
+home-page = "https://github.com/luerhard/pymemdb/"
+classifiers = ["License :: OSI Approved :: MIT License"]
+
