@@ -134,7 +134,7 @@ class Table:
             Optional[int] -- [primary key for the row inserted or None if
                               the insert was skipped]
 
-        """    
+        """
         results = self.find(**{key: row[key] for key in keys})
         try:
             next(results)
@@ -160,10 +160,27 @@ class Table:
             Generator[dict] -- [Generator over all rows that match the search]
         """
         results = self._find_rows(ignore_errors=ignore_errors, **kwargs)
-        if not results:
-            return None
+
         for idx in results:
             yield {self.idx_name: idx, **self._get_row(idx)}
+
+    def find_one(self, ignore_errors: bool = False, **kwargs) -> Optional[dict]:
+        """finds a single row from the table, if there is one.
+        Keyword Arguments:
+            ignore_errors {bool} -- if True, it raises an error if a column
+                                    does not exist in the table
+                                    (default: {False})
+
+        Returns:
+            Optional[dict] -- single row from the table or None if there is
+                              none that matches the query.
+        """
+
+        try:
+            row = next(self.find(ignore_errors=ignore_errors, **kwargs))
+        except StopIteration:
+            return None
+        return row
 
     def delete(self, ignore_errors: bool = False, **kwargs) -> int:
         pks = {row[self.idx_name] for row in self.find(**kwargs)}

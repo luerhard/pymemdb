@@ -3,4 +3,4 @@ from .column import Column
 from .database import Database
 from .table import Table
 
-__version__ = "1.0.2"
+__version__ = "1.1.0"

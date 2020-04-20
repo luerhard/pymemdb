@@ -1,5 +1,6 @@
 from pymemdb import Table
 
+import pytest
 
 def test_find_rows(big_table):
     result = next(big_table.find(normal=8))
@@ -46,3 +47,31 @@ def test_find_with_multiple_default_vals():
     assert [r["b"] for r in result] == [1, 2]
     assert list(result2) == [dict(b=2, firstname="John", lastname="Smith")]
     assert [r["b"] for r in result3] == [1, 2]
+
+
+def test_find_no_results():
+    t = Table(primary_id="a")
+    t.insert(dict(a=1, b=2))
+
+    with pytest.raises(StopIteration):
+        next(t.find(a=3))
+
+    assert next(t.find(a=1)) == dict(a=1, b=2)
+
+
+def test_find_one_single_result():
+    t = Table(primary_id="a")
+    t.insert(dict(a=1, b=2))
+
+    row = t.find_one(a=1)
+
+    assert row == dict(a=1, b=2)
+
+
+def test_find_one_no_result():
+    t = Table(primary_id="a")
+    t.insert(dict(a=1, b=2))
+
+    row = t.find_one(a=2)
+
+    assert row == None
