@@ -1,0 +1,7 @@
+[pylint]
+max-args=9
+disable=
+    C0114,
+    C0103,
+ignore=tests/*
+max-line-length=120

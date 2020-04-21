@@ -1,5 +1,11 @@
 class TableAlreadyExists(Exception):
-    pass
+
+    def __init__(self, tablename):
+        self.tablename = tablename
+        super(TableAlreadyExists, self).__init__()
+
+    def __str__(self):
+        return f"Table '{self.tablename}' already exists in the Database!"
 
 
 class ColumnDoesNotExist(Exception):
@@ -7,8 +13,4 @@ class ColumnDoesNotExist(Exception):
 
 
 class UniqueConstraintError(Exception):
-    pass
-
-
-class NotYetImplementedError(Exception):
     pass

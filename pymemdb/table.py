@@ -5,7 +5,7 @@ import sys
 
 import dataset
 
-from pymemdb import Column, ColumnDoesNotExist, NotYetImplementedError
+from pymemdb import Column, ColumnDoesNotExist
 
 
 version = sys.version_info

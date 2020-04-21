@@ -1,6 +1,9 @@
 
 import os
 import pytest
+
+import dataset
+
 from pymemdb import Database, Table, TableAlreadyExists
 
 
@@ -36,6 +39,30 @@ def test_access_table():
     assert db["mytable"].name == "mytable"
 
 
+def test_assign_new_table():
+    t = Table()
+    db = Database()
+    db["test"] = t
+
+    assert "test" in db.tables
+
+
+def test_assign_wrong_type():
+    db = Database()
+    with pytest.raises(TypeError):
+        db["mytable"] = "Hello World"
+
+
+def test_error_on_overwrite():
+    t1 = Table()
+    t2 = Table()
+    db = Database()
+    db["mytable"] = t1
+    exp_msg = "Table 'mytable' already exists in the Database!"
+    with pytest.raises(TableAlreadyExists, match=exp_msg):
+        db["mytable"] = t2
+
+
 def test_sqlitedb_create(tmpdir):
     db = Database()
     db.create_table("a", primary_id="col1")
@@ -43,7 +70,8 @@ def test_sqlitedb_create(tmpdir):
     db["a"].insert({"col1": 1, "col2": "stringcol"})
     db["b"].insert({"col1b": 1, "col2b": 3.5})
 
-    sqlitedb = db.to_sqlite(tmpdir / "test.db", chunk_size=1)
+    dataset_db = dataset.connect(f"sqlite:///{tmpdir / 'test.db'}")
+    sqlitedb = db.to_dataset(dataset_db, chunk_size=1)
 
     assert list(sqlitedb["a"].all()) == list(db["a"].all())
     assert list(sqlitedb["b"].all()) == list(db["b"].all())
@@ -56,5 +84,3 @@ def test_raise_table_already_exists():
 
     with pytest.raises(TableAlreadyExists):
         db.create_table("table")
-
-
