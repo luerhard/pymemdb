@@ -1,9 +1,12 @@
 from collections import defaultdict
 from collections.abc import Iterable
 from typing import Optional, Generator, Union, Hashable, List, Dict
-from pymemdb import Column, ColumnDoesNotExist
-
 import sys
+
+import dataset
+
+from pymemdb import Column, ColumnDoesNotExist, NotYetImplementedError
+
 
 version = sys.version_info
 if version.major < 3:  # pragma: no cover
@@ -29,6 +32,23 @@ class Table:
         self.idx = 0
         self.keys: set = set()
         self.create_column(name=self.idx_name, unique=True)
+
+    @classmethod
+    def from_dataset(cls, table: dataset.table.Table, name=None) -> None:
+        if name is None:
+            name = table.name
+
+        pk = None
+        for col in table.table.columns:
+            if col.primary_key is True:
+                pk = col.name
+                break
+
+        pymemdb_table = cls(name, primary_id=pk)
+        for row in table:
+            pymemdb_table.insert(row)
+
+        return pymemdb_table
 
     def all(self, ordered: ORDER_TYPE = False) -> ROW_GEN:
         """returns a generator of all rows of the table.

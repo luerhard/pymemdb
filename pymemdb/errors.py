@@ -8,3 +8,7 @@ class ColumnDoesNotExist(Exception):
 
 class UniqueConstraintError(Exception):
     pass
+
+
+class NotYetImplementedError(Exception):
+    pass
