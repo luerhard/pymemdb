@@ -50,6 +50,16 @@ class Table:
 
         return pymemdb_table
 
+    def to_dataset(self, db: dataset.Database, drop=False):
+        if self.name in db.tables and drop:
+            db[self.name].drop()
+        if self.name not in db.tables:
+            db.create_table(self.name, primary_id=self.idx_name)
+
+        with db as tx:
+            for row in self.all():
+                tx[self.name].insert(row)
+
     def all(self, ordered: ORDER_TYPE = False) -> ROW_GEN:
         """returns a generator of all rows of the table.
 
