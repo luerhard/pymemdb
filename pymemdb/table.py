@@ -243,17 +243,16 @@ class Table:
 
         new_where = {**where, **kwargs}
         rows = self.find(**new_where)
-        result_counter = defaultdict(lambda: tuple([frozenset(), 0]))
+        result_counter = defaultdict(frozenset)
         for row in rows:
             pk = row[self.idx_name]
             del row[self.idx_name]
             r = result_counter[tuple(row.items())]
-            r = (r[0].union({pk}), r[1] + 1)
-            result_counter[tuple(row.items())] = r
+            result_counter[tuple(row.items())] = r.union({pk})
 
         rowcount = 0
-        for keys, (pks, n) in result_counter.items():
-            if n < 2:
+        for pks in result_counter.values():
+            if len(pks) < 2:
                 continue
             keep = min(pks)
             pks = pks.difference({keep})

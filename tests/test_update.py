@@ -1,5 +1,6 @@
 from pymemdb import Table
 
+
 def test_update_single():
     t = Table()
 
@@ -34,6 +35,7 @@ def test_update_replace():
     assert len(t) == 2
     assert len(list(t.find(nachname="greiff"))) == 1
 
+
 def test_update_replace_with_context():
     t = Table()
 
@@ -43,6 +45,62 @@ def test_update_replace_with_context():
     row4 = dict(vorname="luke", nachname="doe", address="23Street")
 
     for row in [row1, row2, row3, row4]:
+        t.insert(row)
+
+    t.update_replace(where={"nachname": "smith"}, nachname="greiff")
+
+    assert len(t) == 3
+    assert len(list(t.find(nachname="greiff"))) == 2
+
+
+def test_update_replace_no_update():
+    t = Table()
+
+    row1 = dict(vorname="rainer", nachname="greiff", address="123street")
+    row2 = dict(vorname="rainer", nachname="smith", address="123street")
+    row3 = dict(vorname="rainer", nachname="smith", address="456street")
+    row4 = dict(vorname="luke", nachname="doe", address="23Street")
+
+    for row in [row1, row2, row3, row4]:
+        t.insert(row)
+
+    t.update_replace(where={"nachname": "pete"}, nachname="greiff")
+
+    assert len(t) == 4
+    assert len(list(t.find(nachname="greiff"))) == 1
+
+
+def test_update_replace_no_replace():
+    t = Table()
+
+    row1 = dict(vorname="rainer", nachname="greiff", address="123street")
+    row2 = dict(vorname="rainer", nachname="smith", address="123street")
+    row3 = dict(vorname="rainer", nachname="smith", address="456street")
+    row4 = dict(vorname="luke", nachname="doe", address="23Street")
+
+    for row in [row1, row2, row3, row4]:
+        t.insert(row)
+
+    t.update_replace(where={"nachname": "doe"}, nachname="greiff")
+
+    assert len(t) == 4
+    assert len(list(t.find(nachname="greiff"))) == 2
+
+
+def test_update_replace_multiple_replace():
+    t = Table()
+
+    rows = [
+        dict(vorname="rainer", nachname="greiff", address="123street"),
+        dict(vorname="rainer", nachname="greiff", address="123street"),
+        dict(vorname="rainer", nachname="smith", address="123street"),
+        dict(vorname="rainer", nachname="smith", address="123street"),
+        dict(vorname="rainer", nachname="smith", address="123street"),
+        dict(vorname="rainer", nachname="smith", address="456street"),
+        dict(vorname="luke", nachname="doe", address="23Street"),
+    ]
+
+    for row in rows:
         t.insert(row)
 
     t.update_replace(where={"nachname": "smith"}, nachname="greiff")
