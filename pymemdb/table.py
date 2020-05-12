@@ -148,7 +148,7 @@ class Table:
             self._columns[self.idx_name].insert(idx, idx)
         return idx
 
-    def insert_ignore(self, row: Dict, keys: List[str]) -> Optional[int]:
+    def insert_ignore(self, row: Dict, keys: List[str], ignore_errors: bool = True) -> Optional[int]:
         """Inserts rows into the table. If another row is already present
            where all the values are identical for the fields in 'keys', the
            insert will be skipped
@@ -165,14 +165,14 @@ class Table:
                               the insert was skipped]
 
         """
-        results = self.find(**{key: row[key] for key in keys})
+        results = self.find(**{key: row[key] for key in keys}, ignore_errors=ignore_errors)
         try:
             next(results)
         except StopIteration:
             return self.insert(row)
         return None
 
-    def find(self, ignore_errors: bool = False,
+    def find(self, ignore_errors: bool = True,
              **kwargs) -> Generator[dict, None, None]:
         """finds rows in the table.
 
@@ -235,6 +235,21 @@ class Table:
                 cell_dict[pk] = val
                 val_dict[val].add(pk)
         return len(pks)
+
+    def update_replace(self, where: dict, **kwargs):
+        n_rows = self.update(where=where, **kwargs)
+        if n_rows == 0:
+            return 0
+
+        new_where = {**where, **kwargs}
+        pks = self._find_rows(**new_where)
+        if len(pks) < 2:
+            return len(pks)
+
+        to_delete = max(pks)
+        self.delete(**{self.idx_name: to_delete})
+
+        return 1
 
     def _get_row(self, idx: int) -> dict:
         row = {col: self._columns[col].find_value(idx) for col in self.columns}
