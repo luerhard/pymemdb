@@ -242,14 +242,25 @@ class Table:
             return 0
 
         new_where = {**where, **kwargs}
-        pks = self._find_rows(**new_where)
-        if len(pks) < 2:
-            return len(pks)
+        rows = self.find(**new_where)
+        result_counter = defaultdict(lambda: tuple([frozenset(), 0]))
+        for row in rows:
+            pk = row[self.idx_name]
+            del row[self.idx_name]
+            r = result_counter[tuple(row.items())]
+            r = (r[0].union({pk}), r[1] + 1)
+            result_counter[tuple(row.items())] = r
 
-        to_delete = max(pks)
-        self.delete(**{self.idx_name: to_delete})
+        rowcount = 0
+        for keys, (pks, n) in result_counter.items():
+            if n < 2:
+                continue
+            keep = min(pks)
+            pks = pks.difference({keep})
+            n = self.delete(**{self.idx_name: pks})
+            rowcount += n
 
-        return 1
+        return rowcount
 
     def _get_row(self, idx: int) -> dict:
         row = {col: self._columns[col].find_value(idx) for col in self.columns}
