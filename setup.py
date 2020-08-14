@@ -13,7 +13,7 @@ def read(fname):
 
 setup(
     name="pymemdb",
-    version="1.4.2",
+    version="1.4.3",
     author_email="luerhard@googlemail.com",
     description=("A very fast in-memory database with export to sqlite written purely in python"),
     long_description=read("README.md"),
