@@ -4,7 +4,7 @@ def test_single_insert_auto_primary():
     table = Table(primary_id="pk")
     row = {"a": 1, "b": 2, "c": 0}
     table.insert(row)
-    assert list(table.all()) == [{"pk": 0, **row}]
+    assert list(table.all()) == [{"pk": 1, **row}]
 
 
 def test_single_insert_given_primary():

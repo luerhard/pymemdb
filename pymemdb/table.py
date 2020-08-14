@@ -29,7 +29,7 @@ class Table:
         self.name = name
         self.idx_name = primary_id
         self._columns: defaultdict = defaultdict(Column)
-        self.idx = 0
+        self.idx = 1
         self.keys: set = set()
         self.create_column(name=self.idx_name, unique=True)
 
